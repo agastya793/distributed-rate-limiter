@@ -158,9 +158,6 @@ Configuration can be changed using the `.env` file.
 
 ---
 
-## 📷 Screenshots
-
-(Add Swagger screenshots here after uploading to GitHub.)
 
 ---
 
