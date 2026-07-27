@@ -1,57 +1,118 @@
 import time
-
 from fastapi import Request
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from gateway.services.redis_service import redis_service
+from gateway.services.user_limit_service import UserLimitService
+from gateway.services.api_key_service import APIKeyService
+from gateway.auth.jwt_handler import verify_token
 
 
-class SlidingWindowRateLimiter:
+class SlidingWindowRateLimiter(BaseHTTPMiddleware):
 
-    LIMIT = 5
     WINDOW = 60
 
-    def __init__(self):
-        self.redis = redis_service.get_client()
+    def __init__(self, app):
+        super().__init__(app)
+        self.user_limit_service = UserLimitService()
+        self.api_key_service = APIKeyService()
 
-    async def __call__(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next):
 
-        client_ip = request.client.host
+        # ----------------------------
+        # Public Endpoints
+        # ----------------------------
+        public_paths = [
+            "/",
+            "/health",
+            "/docs",
+            "/openapi.json",
+            "/redoc",
+            "/docs/oauth2-redirect",
+            "/auth/login",
+        ]
 
-        key = f"sliding:{client_ip}"
+        if (
+            request.url.path in public_paths
+            or request.url.path.startswith("/admin")
+        ):
+            return await call_next(request)
 
-        now = time.time()
+        # ----------------------------
+        # Dual Authentication (X-API-Key or Bearer JWT)
+        # ----------------------------
+        client = None
+        api_key = request.headers.get("X-API-Key")
+        auth_header = request.headers.get("Authorization")
 
-        window_start = now - self.WINDOW
+        if api_key:
+            try:
+                client = await self.api_key_service.validate_api_key(api_key)
+            except Exception:
+                client = None
+        elif auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ", 1)[1]
+            payload = verify_token(token)
+            if payload:
+                client = payload.get("username") or payload.get("sub")
 
-        # Remove timestamps outside the window
-        self.redis.zremrangebyscore(key, 0, window_start)
-
-        # Count requests still inside the window
-        current_requests = self.redis.zcard(key)
-
-        if current_requests >= self.LIMIT:
-
+        if not client:
             return JSONResponse(
-                status_code=429,
-                content={
-                    "error": "Rate limit exceeded"
-                }
+                status_code=401,
+                content={"error": "Valid JWT Bearer token or X-API-Key is required"}
             )
 
-        # Add current request
-        self.redis.zadd(
-            key,
-            {
-                str(now): now
-            }
-        )
+        if isinstance(client, bytes):
+            client = client.decode()
 
-        self.redis.expire(
-            key,
-            self.WINDOW
-        )
+        # ----------------------------
+        # Blacklist & Whitelist Checks
+        # ----------------------------
+        try:
+            if await self.user_limit_service.is_blacklisted(client):
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "Client is blacklisted"}
+                )
 
-        response = await call_next(request)
+            if await self.user_limit_service.is_whitelisted(client):
+                return await call_next(request)
+        except Exception:
+            pass
 
-        return response
+        # ----------------------------
+        # Dynamic Rate Limit via Atomic Lua Script
+        # ----------------------------
+        try:
+            limit = await self.user_limit_service.get_limit(client)
+            key = f"sliding:{client}"
+            now = time.time()
+
+            allowed = await redis_service.rate_limit_script(
+                keys=[key],
+                args=[now, self.WINDOW, limit]
+            )
+
+            if allowed == 0:
+                return JSONResponse(
+                    status_code=429,
+                    content={
+                        "error": "Rate limit exceeded",
+                        "client": client,
+                        "limit": limit,
+                        "window": self.WINDOW
+                    },
+                    headers={
+                        "Retry-After": str(self.WINDOW),
+                        "X-RateLimit-Limit": str(limit),
+                        "X-RateLimit-Remaining": "0"
+                    }
+                )
+
+            response = await call_next(request)
+            response.headers["X-RateLimit-Limit"] = str(limit)
+            return response
+        except Exception:
+            # Fallback if Redis is unavailable
+            return await call_next(request)

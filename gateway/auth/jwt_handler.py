@@ -1,5 +1,4 @@
-from datetime import datetime, timedelta
-
+from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 
 from gateway.core.config import settings
@@ -8,7 +7,7 @@ from gateway.core.config import settings
 def create_access_token(data: dict):
     payload = data.copy()
 
-    expire = datetime.utcnow() + timedelta(
+    expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
 
