@@ -22,11 +22,14 @@ if count >= limit then
     return 0
 end
 
+local seq = redis.call("INCR", key .. ":seq")
+local member = tostring(now) .. ":" .. tostring(seq)
+
 redis.call(
     "ZADD",
     key,
     now,
-    tostring(now)
+    member
 )
 
 redis.call(
