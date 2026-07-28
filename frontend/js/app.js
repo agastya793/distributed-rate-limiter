@@ -2,8 +2,16 @@
  * Distributed Rate Limiter API Gateway - Web Dashboard Application Engine
  */
 
+function getSanitizedBaseUrl() {
+  let url = (localStorage.getItem("api_base_url") || window.location.origin).trim().replace(/\/$/, "");
+  if (url.endsWith("/dashboard")) {
+    url = url.replace(/\/dashboard$/, "");
+  }
+  return url;
+}
+
 let config = {
-  baseUrl: localStorage.getItem("api_base_url") || "https://distributed-rate-limiter-mbk0.onrender.com",
+  baseUrl: getSanitizedBaseUrl(),
   adminKey: localStorage.getItem("admin_key") || "admin-secret-key-12345",
   jwtToken: localStorage.getItem("jwt_token") || "",
   apiKey: localStorage.getItem("api_key") || ""

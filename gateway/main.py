@@ -104,7 +104,12 @@ app.include_router(
     tags=["Admin"]
 )
 
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
+
+@app.get("/dashboard")
+def redirect_dashboard():
+    return RedirectResponse(url="/dashboard/", status_code=307)
 
 app.mount("/dashboard", StaticFiles(directory="frontend", html=True), name="dashboard")
 
