@@ -70,6 +70,12 @@ This system demonstrates real-world backend engineering concepts beyond standard
 
 ```text
 distributed-rate-limiter/
+├── frontend/
+│   ├── css/
+│   │   └── styles.css              # Glassmorphism dark-mode theme & custom animations
+│   ├── js/
+│   │   └── app.js                  # Reactive dashboard engine, Chart.js telemetry & simulator
+│   └── index.html                  # Single-page Web Dashboard application
 ├── gateway/
 │   ├── auth/
 │   │   ├── api_key.py              # X-API-Key validation dependency
