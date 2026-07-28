@@ -248,6 +248,22 @@ async function runRateLimitSimulator() {
   const logContainer = document.getElementById("simulator-log-box");
   logContainer.innerHTML = "";
   
+  // Auto-authenticate if no token or API key exists
+  if (!config.apiKey && !config.jwtToken) {
+    try {
+      const authRes = await fetch(`${config.baseUrl}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: "shubham", password: "password123" })
+      });
+      if (authRes.ok) {
+        const authData = await authRes.json();
+        config.jwtToken = authData.access_token;
+        localStorage.setItem("jwt_token", config.jwtToken);
+      }
+    } catch (e) {}
+  }
+
   const headers = {};
   if (config.apiKey) headers["X-API-Key"] = config.apiKey;
   else if (config.jwtToken) headers["Authorization"] = `Bearer ${config.jwtToken}`;
