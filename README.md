@@ -1,4 +1,10 @@
-# 🚀 Production-Inspired API Gateway & Distributed Rate Limiter
+# 🚀 Production API Gateway & Distributed Rate Limiter
+
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Render-00f2fe?style=for-the-badge&logo=render)](https://distributed-rate-limiter-mbk0.onrender.com/dashboard)
+[![Swagger UI](https://img.shields.io/badge/Swagger_UI-OpenAPI-10b981?style=for-the-badge&logo=fastapi)](https://distributed-rate-limiter-mbk0.onrender.com/docs)
+
+👉 **Live Web Dashboard**: [https://distributed-rate-limiter-mbk0.onrender.com/dashboard](https://distributed-rate-limiter-mbk0.onrender.com/dashboard)  
+👉 **Live Swagger OpenAPI Specs**: [https://distributed-rate-limiter-mbk0.onrender.com/docs](https://distributed-rate-limiter-mbk0.onrender.com/docs)
 
 A production-grade, distributed **API Gateway & Microservice Architecture** built using **FastAPI**, **Redis (`redis.asyncio`)**, **Lua Scripting**, **JWT Authentication**, and **Docker Compose**. 
 
