@@ -49,11 +49,6 @@
           <span class="nav-icon">🔐</span> Auth & Security
         </button>
       </li>
-      <li class="nav-item">
-        <button data-view="architecture-view">
-          <span class="nav-icon">🏛️</span> Architecture & Diagrams
-        </button>
-      </li>
     </ul>
 
     <div class="sidebar-footer">
@@ -306,64 +301,6 @@
             Authenticate & Generate JWT Token
           </button>
         </form>
-      </div>
-    </section>
-
-    <!-- SECTION 6: System Architecture View -->
-    <section id="architecture-view" class="view-section">
-      <div class="glass-card" style="margin-bottom:24px;">
-        <h3 style="font-size:18px; font-weight:700; margin-bottom:12px;">🏛️ System Architecture Diagram</h3>
-        <pre style="font-family:monospace; font-size:12px; color: var(--accent-cyan); background: rgba(0,0,0,0.4); padding:20px; border-radius:12px; border:1px solid var(--border-color); overflow-x:auto;">
-                                       ┌────────────────────────┐
-                                       │         Client         │
-                                       └───────────┬────────────┘
-                                                   │ HTTP Request
-                                                   ▼
-┌────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                      FastAPI API Gateway                                       │
-│                                                                                                │
-│  ┌──────────────────────────────────────────────────────────────────────────────────────────┐  │
-│  │                                   MIDDLEWARE PIPELINE                                    │  │
-│  │                                                                                          │  │
-│  │  1. CorrelationIdMiddleware   ──▶ Injects unique `X-Request-ID` for distributed tracing   │  │
-│  │  2. StructuredLoggingMiddleware ──▶ Emits JSON logs (Latency, Path, Status, Request-ID)    │  │
-│  │  3. MetricsMiddleware          ──▶ Records request counts, status codes & latency stats  │  │
-│  │  4. SlidingWindowRateLimiter   ──▶ Evaluates Policies & Atomic Lua script on Redis ZSET  │  │
-│  └───────────────────────────────────────────────┬──────────────────────────────────────────┘  │
-│                                                  │                                             │
-│  ┌───────────────────────────────────────────────┴──────────────────────────────────────────┐  │
-│  │                                         ROUTER LAYER                                     │  │
-│  │                                                                                          │  │
-│  │   ├── /auth   ──▶ Token generation & client authentication                               │  │
-│  │   ├── /admin  ──▶ Protected management endpoints (API keys, custom rate limits, metrics) │  │
-│  │   ├── /users  ──▶ Reverse Proxy Service (httpx connection pool ──▶ User Service 8001)     │  │
-│  │   └── /products──▶ Reverse Proxy Service (httpx connection pool ──▶ Product Service 8002)  │  │
-│  └───────────────────────────────────────────────┬──────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────┼─────────────────────────────────────────────┘
-                                                   │
-                      ┌────────────────────────────┼────────────────────────────┐
-                      ▼                            ▼                            ▼
-          ┌──────────────────────┐     ┌──────────────────────┐     ┌──────────────────────┐
-          │    Redis Service     │     │     User Service     │     │   Product Service    │
-          │   (redis.asyncio)    │     │   (FastAPI - 8001)   │     │   (FastAPI - 8002)   │
-          └──────────────────────┘     └──────────────────────┘     └──────────────────────┘
-        </pre>
-      </div>
-
-      <div class="stats-grid">
-        <div class="glass-card">
-          <h4 style="font-size:15px; font-weight:700; color: var(--accent-cyan); margin-bottom:8px;">⚡ Atomic Redis Lua Engine</h4>
-          <p style="font-size:13px; color: var(--text-muted); line-height:1.5;">
-            Executes sliding window evaluation in 1 atomic roundtrip using sorted sets (`ZSET`) and `redis.call("INCR", key .. ":seq")` sequence counters to eliminate concurrency collisions.
-          </p>
-        </div>
-
-        <div class="glass-card">
-          <h4 style="font-size:15px; font-weight:700; color: var(--accent-purple); margin-bottom:8px;">🔑 Dual Security Scheme</h4>
-          <p style="font-size:13px; color: var(--text-muted); line-height:1.5;">
-            Supports OAuth2 JWT Bearer Tokens (`Authorization: Bearer <token>`) and 32-byte hex client API keys (`X-API-Key`) with dynamic role-based rate limits.
-          </p>
-        </div>
       </div>
     </section>
 
