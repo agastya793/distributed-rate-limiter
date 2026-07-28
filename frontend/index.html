@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Distributed Rate Limiter Gateway - Dashboard</title>
+  <!-- Google Fonts & Chart.js -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- App Sidebar Nav -->
+  <aside class="app-sidebar">
+    <div class="brand-header">
+      <div class="brand-logo">⚡</div>
+      <div>
+        <div class="brand-title">Rate Limiter API</div>
+        <div class="brand-subtitle">Gateway & Observability</div>
+      </div>
+    </div>
+
+    <ul class="nav-list">
+      <li class="nav-item">
+        <button class="active" data-view="dashboard-view">
+          <span class="nav-icon">📊</span> Telemetry Dashboard
+        </button>
+      </li>
+      <li class="nav-item">
+        <button data-view="simulator-view">
+          <span class="nav-icon">⚡</span> Rate Limit Simulator
+        </button>
+      </li>
+      <li class="nav-item">
+        <button data-view="explorer-view">
+          <span class="nav-icon">📦</span> Microservices Explorer
+        </button>
+      </li>
+      <li class="nav-item">
+        <button data-view="admin-view">
+          <span class="nav-icon">🛡️</span> Admin Policy Manager
+        </button>
+      </li>
+      <li class="nav-item">
+        <button data-view="auth-view">
+          <span class="nav-icon">🔐</span> Auth & Security
+        </button>
+      </li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <div class="server-status-card">
+        <div class="status-dot" id="gateway-health-dot"></div>
+        <div>
+          <div style="font-size:12px; font-weight:700;" id="gateway-health-label">Checking...</div>
+          <div style="font-size:10px; color: var(--text-muted);">Port 8000 / Render</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- App Main Content -->
+  <main class="app-main">
+
+    <!-- Top Navigation Header -->
+    <header class="top-bar">
+      <div class="page-title-group">
+        <h1>Production API Gateway Portal</h1>
+        <p>Distributed Sliding Window Rate Limiting & Real-time Metrics</p>
+      </div>
+
+      <div class="top-controls">
+        <div class="input-pill-group">
+          <label>Gateway URL:</label>
+          <input type="text" id="api-base-url" value="https://distributed-rate-limiter-mbk0.onrender.com">
+        </div>
+        <div class="input-pill-group" style="width:200px;">
+          <label>Admin Key:</label>
+          <input type="password" id="admin-key-input" value="admin-secret-key-12345" style="width:100px;">
+        </div>
+      </div>
+    </header>
+
+    <!-- SECTION 1: Telemetry Dashboard View -->
+    <section id="dashboard-view" class="view-section active">
+      <div class="stats-grid">
+        <div class="glass-card">
+          <div class="stat-card-title">Total Requests</div>
+          <div class="stat-card-value" id="metric-total-reqs" style="color: var(--accent-cyan);">0</div>
+          <div class="stat-card-sub">Aggregated Gateway Hits</div>
+        </div>
+
+        <div class="glass-card">
+          <div class="stat-card-title">Success Requests (2xx)</div>
+          <div class="stat-card-value" id="metric-success-reqs" style="color: var(--accent-emerald);">0</div>
+          <div class="stat-card-sub">Passed Middleware</div>
+        </div>
+
+        <div class="glass-card">
+          <div class="stat-card-title">Rate Limited (429)</div>
+          <div class="stat-card-value" id="metric-rate-limited" style="color: var(--accent-rose);">0</div>
+          <div class="stat-card-sub">Atomic Redis Blocks</div>
+        </div>
+
+        <div class="glass-card">
+          <div class="stat-card-title">Average Latency</div>
+          <div class="stat-card-value" id="metric-avg-latency" style="color: var(--accent-purple);">0 ms</div>
+          <div class="stat-card-sub">Processing & Proxy Time</div>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="glass-card">
+          <h3 style="font-size:16px; font-weight:700;">Requests per Endpoint</h3>
+          <div class="chart-container">
+            <canvas id="endpointChart"></canvas>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <h3 style="font-size:16px; font-weight:700;">HTTP Status Distribution</h3>
+          <div class="chart-container">
+            <canvas id="statusChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Redis Diagnostics Card -->
+      <div class="glass-card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h3 style="font-size:16px; font-weight:700;">Redis Engine Memory & Diagnostics</h3>
+            <p style="font-size:13px; color: var(--text-muted); margin-top:4px;">In-Memory Sorted Sets (`ZSET`) and Atomic Lua Scripts (`rate_limit.lua`)</p>
+          </div>
+          <span class="badge badge-emerald" id="redis-version-val">Redis Active</span>
+        </div>
+
+        <div style="display:flex; gap:32px; margin-top:20px;">
+          <div>
+            <div style="font-size:12px; color: var(--text-dim); text-transform:uppercase; font-weight:600;">Used Memory</div>
+            <div style="font-size:22px; font-weight:800; color: var(--accent-cyan); margin-top:4px;" id="redis-memory-val">Scanning...</div>
+          </div>
+          <div>
+            <div style="font-size:12px; color: var(--text-dim); text-transform:uppercase; font-weight:600;">Rate Limiting Algorithm</div>
+            <div style="font-size:14px; font-weight:700; color: var(--text-main); margin-top:8px;">Atomic Redis Lua (`rate_limit.lua`)</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: Rate Limit Simulator View -->
+    <section id="simulator-view" class="view-section">
+      <div class="simulator-panel">
+        <div class="glass-card">
+          <h3 style="font-size:18px; font-weight:700; margin-bottom:8px;">⚡ Rate Limit Burst Test Simulator</h3>
+          <p style="font-size:13px; color: var(--text-muted); line-height:1.5;">
+            Fires 12 rapid HTTP requests in under 1 second to test atomic Redis sliding window rate limiting. The first 10 requests will pass (HTTP 200), and requests 11 & 12 will trigger <strong>HTTP 429 Too Many Requests</strong>.
+          </p>
+
+          <div class="meter-wrapper">
+            <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600;">
+              <span>Sliding Window Meter (60s)</span>
+              <span id="meter-label">0 / 10 Requests Window</span>
+            </div>
+            <div class="meter-bar-outer">
+              <div class="meter-bar-inner" id="meter-bar-fill"></div>
+            </div>
+          </div>
+
+          <button class="btn btn-danger" id="run-simulator-btn" style="width:100%; justify-content:center; padding:14px; margin-top:12px;">
+            🚀 Run Rate Limit Burst Test (12 Reqs)
+          </button>
+        </div>
+
+        <!-- Terminal Log Box -->
+        <div class="glass-card" style="background: #050811; border-color: rgba(0,242,254,0.2);">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:12px; margin-bottom:12px;">
+            <span style="font-size:12px; font-weight:700; font-family:monospace; color: var(--accent-cyan);">LIVE EXECUTION TERMINAL</span>
+            <span class="badge badge-cyan">httpx Client</span>
+          </div>
+
+          <div id="simulator-log-box" style="height:240px; overflow-y:auto; font-family:monospace; font-size:12px; color: var(--text-muted);">
+            Click "Run Rate Limit Burst Test" to begin live traffic simulation...
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: Microservices Explorer View -->
+    <section id="explorer-view" class="view-section">
+      <div class="glass-card" style="margin-bottom:24px;">
+        <div style="display:flex; gap:12px; margin-bottom:20px;">
+          <button class="btn btn-primary" onclick="loadMicroserviceData('users')">User Service (Port 8001)</button>
+          <button class="btn btn-purple" onclick="loadMicroserviceData('products')">Product Service (Port 8002)</button>
+        </div>
+
+        <h3 style="font-size:16px; font-weight:700;">Downstream User Microservice Data (`GET /users`)</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Trace Correlation ID</th>
+              </tr>
+            </thead>
+            <tbody id="users-table-body">
+              <tr><td colspan="5" style="text-align:center; color: var(--text-muted);">Click "User Service" above to fetch live proxied records.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <h3 style="font-size:16px; font-weight:700;">Downstream Product Microservice Data (`GET /products`)</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Product Name</th>
+                <th>Price</th>
+                <th>Category</th>
+                <th>Trace Correlation ID</th>
+              </tr>
+            </thead>
+            <tbody id="products-table-body">
+              <tr><td colspan="5" style="text-align:center; color: var(--text-muted);">Click "Product Service" above to fetch live proxied records.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: Admin Policy Manager View -->
+    <section id="admin-view" class="view-section">
+      <div class="stats-grid">
+
+        <!-- Generate API Key Card -->
+        <div class="glass-card">
+          <h3 style="font-size:16px; font-weight:700; margin-bottom:12px;">🔑 Generate Client API Key</h3>
+          <form id="generate-key-form">
+            <div class="form-group">
+              <label>Client Name / ID:</label>
+              <input type="text" id="key-client-name" class="form-control" placeholder="e.g. frontend_client_1" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Generate 32-Byte API Key</button>
+          </form>
+
+          <div style="margin-top:16px;">
+            <label style="font-size:12px; color: var(--text-muted);">Generated Key:</label>
+            <input type="text" id="generated-key-display" class="form-control" style="font-family:monospace; font-size:11px; margin-top:4px;" readonly placeholder="Key will appear here...">
+          </div>
+        </div>
+
+        <!-- Dynamic Rate Limit & Policy Card -->
+        <div class="glass-card">
+          <h3 style="font-size:16px; font-weight:700; margin-bottom:12px;">🛡️ Role & Limit Overrides</h3>
+          <p style="font-size:13px; color: var(--text-muted); margin-bottom:16px;">
+            Default Role Limits: <strong>Free</strong> (10/m), <strong>Premium</strong> (100/m), <strong>Admin</strong> (1,000,000/m).
+          </p>
+          <div class="badge badge-purple" style="padding:8px 12px; width:100%; text-align:center;">
+            Admin Protected (`X-Admin-Key: admin-secret-key-12345`)
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 5: Auth & Security View -->
+    <section id="auth-view" class="view-section">
+      <div class="glass-card" style="max-width:500px; margin: 0 auto;">
+        <div style="text-align:center; margin-bottom:24px;">
+          <h2 style="font-size:22px; font-weight:800;">User Authentication Login</h2>
+          <p style="font-size:13px; color: var(--text-muted); margin-top:4px;">Obtain signed OAuth2 JWT Bearer Token (`POST /auth/login`)</p>
+          <div style="margin-top:12px;">
+            <span class="badge badge-cyan" id="auth-status-badge">Not Logged In</span>
+          </div>
+        </div>
+
+        <form id="login-form">
+          <div class="form-group">
+            <label>Username:</label>
+            <input type="text" id="login-username" class="form-control" value="shubham" required>
+          </div>
+
+          <div class="form-group">
+            <label>Password:</label>
+            <input type="password" id="login-password" class="form-control" value="password123" required>
+          </div>
+
+          <button type="submit" class="btn btn-purple" style="width:100%; justify-content:center; padding:14px; margin-top:8px;">
+            Authenticate & Generate JWT Token
+          </button>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
