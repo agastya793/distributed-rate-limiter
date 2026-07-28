@@ -15,6 +15,7 @@ The API Gateway exposes three categories of endpoints:
 | :--- | :--- | :---: | :---: | :--- |
 | `GET` | `/` | ❌ | ❌ | Gateway root status & version information |
 | `GET` | `/health` | ❌ | ❌ | Service health check |
+| `GET` | `/dashboard` | ❌ | ❌ | Interactive Glassmorphism Web Dashboard & Rate Limit Simulator |
 | `GET` | `/docs` | ❌ | ❌ | Interactive OpenAPI / Swagger UI |
 | `GET` | `/openapi.json` | ❌ | ❌ | OpenAPI 3.1.0 schema specification |
 | `GET` | `/redoc` | ❌ | ❌ | ReDoc interactive API documentation |
