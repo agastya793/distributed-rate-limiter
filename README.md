@@ -194,9 +194,10 @@ gateway/tests/test_proxy.py PASSED                                      [100%]
 
 ---
 
-## 📡 API Reference & Swagger UI
+## 📡 API Reference & Live Web Dashboard
 
-Interactive documentation with native **JWT Bearer** and **X-API-Key** support is available at `/docs`.
+- 🎨 **Web Dashboard UI**: `/dashboard` (Interactive Glassmorphism Dashboard)
+- 📜 **Swagger UI API Docs**: `/docs` (Interactive OpenAPI 3.1.0 Specification)
 
 ### Authentication
 - `POST /auth/login`: Generate JWT Access Token.

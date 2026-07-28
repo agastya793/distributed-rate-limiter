@@ -36,6 +36,7 @@ class SlidingWindowRateLimiter(BaseHTTPMiddleware):
         if (
             request.url.path in public_paths
             or request.url.path.startswith("/admin")
+            or request.url.path.startswith("/dashboard")
         ):
             return await call_next(request)
 

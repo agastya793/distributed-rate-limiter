@@ -104,6 +104,10 @@ app.include_router(
     tags=["Admin"]
 )
 
+from fastapi.staticfiles import StaticFiles
+
+app.mount("/dashboard", StaticFiles(directory="frontend", html=True), name="dashboard")
+
 
 @app.get("/")
 def root():
